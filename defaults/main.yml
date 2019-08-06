@@ -1,0 +1,9 @@
+---
+# defaults file for sonar
+sonar_url: "https://binaries.sonarsource.com/Distribution/sonarqube/"
+sonar_dir: "sonarqube-7.9.1"
+sonar_username: "sonarqube"
+sonar_version: "7.9.1"
+sonar_dbuser: "sonaradmin"
+sonar_dbpass: "LONGPASSWORD-47bdd93620a94218"
+sonar_dburl: "postgresql.domain.com"

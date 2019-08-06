@@ -1,0 +1,95 @@
+---
+# tasks file for sonar
+- name: Ensure prerequite packages are installed
+  apt:
+    name:
+      - apt-transport-https
+      - curl
+      - unzip
+    state: latest
+    update_cache: yes
+
+- name: Install openjdk
+  apt: 
+    name:
+      - openjdk-11-jdk
+    state: latest
+    update_cache: yes 
+  when: ansible_distribution_release == 'bionic'
+
+- name: Install openjdk
+  apt: 
+    name:
+      - openjdk-8-jdk
+    state: latest
+    update_cache: yes 
+  when: ansible_distribution_release == 'xenial'
+
+- name: download sonarqube
+  get_url:
+    url: "{{ sonar_url }}{{ sonar_dir }}.zip"
+    dest: "/tmp/{{ sonar_dir }}.zip"
+  register: sonar_install
+
+- name: Unzip sonarqube
+  unarchive: 
+    src: /tmp/{{ sonar_dir }}.zip 
+    dest: /opt/
+    creates: "/opt/{{ sonar_dir }}"
+  register: unzip_sonarqube
+  when: 
+    - sonar_install is succeeded
+
+- name: Create sonarqube user and group
+  user:
+    name: "{{ sonar_username }}"
+    state: present
+    shell: "/bin/nologin"
+  register: user_created
+  when: unzip_sonarqube is succeeded
+
+- name: Change ownership from sonarqube directory
+  file:
+    dest: "/opt/{{sonar_dir}}"
+    owner: "{{ sonar_username }}"
+    group: "{{ sonar_username }}"
+    recurse: true
+  when: user_created is succeeded
+  register: change_ownership
+
+- name: Add database config file
+  template:
+    dest: "/opt/{{sonar_dir}}/conf/sonar.properties"
+    src: sonar.properties.j2
+  register: config_file
+  when: change_ownership is succeeded
+
+- name: Add systemD start file
+  template:
+    dest: "/etc/systemd/system/sonarqube.service"
+    src: sonarqube.service.j2
+  when: config_file is succeeded
+  register: systemctl_file
+
+- name: add vm.max_map_count in sysctl values
+  sysctl:
+    name: vm.max_map_count
+    value: "262144"
+    state: present
+  register: max_map_count
+  when: systemctl_file is succeeded
+
+- name: add fs.file-max in sysctl values
+  sysctl: 
+    name: fs.file-max
+    value: "65536"
+    state: present
+  register: file_max
+  when: max_map_count is succeeded
+
+- name: sonarqube enable
+  become: 'yes'
+  systemd:
+    name: sonarqube
+    enabled: 'yes'
+  when: file_max is succeeded
