@@ -1,6 +1,8 @@
 Role Name
 =========
 
+TravisCI: [![Build Status](https://travis-ci.org/betorvs/sonarqube-ansible.svg?branch=master)](https://travis-ci.org/betorvs/sonarqube-ansible)
+
 Install Sonarqube Server without database. 
 
 Requirements
